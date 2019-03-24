@@ -1,4 +1,4 @@
-# Word Wolf LineBot
+# NG Word Game LineBot
 
 ## How to setup
 ```bash

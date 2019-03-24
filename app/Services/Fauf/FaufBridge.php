@@ -20,25 +20,22 @@ class FaufBridge
         $result = array();
         for ($i=0; $i < count($responseArray['output']['generic']); $i++) {
             $generic = $responseArray['output']['generic'][$i];
-            switch ($generic['response_type']) {
+            $contents['type'] = $generic['response_type'];
+            switch ($contents['type']) {
                 case "option":
-                    array_merge($result, $generic);
+                    $options = array();
+                    foreach ($generic['options'] as $opt) {
+                        $options[$opt['label']] = $opt['value']['input']['text'];
+                    }
+                    $contents['body'] = $options;
                     break;
                 case "text":
-                    $text = $responseArray['output']['text'][0];
-                    str_replace('USERNAME', 'sho', $text);
-                    array_push($result, $text);
+                    $contents['body'] = $responseArray['output']['text'][0];
                     break;
             }
+            array_push($result, $contents);
         }
-        return $result;
 
-        // for ($i=0; $i < count($responseArray['output']['generic']); $i) {
-        //     if (!empty($responseArray['output']['text'][$i])) {
-        //         return $responseArray['output']['text'][$i];
-        //     } elseif (is_array($responseArray['output']['generic'][$i])) {
-        //         return json_encode($responseArray['output']['generic'][$i]);
-        //     }
-        // }
+        return $result;
     }
 }

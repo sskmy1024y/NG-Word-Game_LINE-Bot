@@ -2,12 +2,12 @@
 
 namespace App\Services\Line\Event;
 
-use App\Models\LineFriend;
+use App\Models\LineGroup;
 use LINE\LINEBot;
-use LINE\LINEBot\Event\FollowEvent;
+use LINE\LINEBot\Event\JoinEvent;
 use DB;
 
-class FollowService
+class JoinService
 {
     /**
      * @var LINEBot
@@ -24,31 +24,32 @@ class FollowService
     }
 
     /**
-     * 登録
-     * @param FollowEvent $event
+     * グループ登録
+     * @param JoinEvent $event
      * @return bool
      * @throws \Illuminate\Database\Eloquent\MassAssignmentException
      */
-    public function execute(FollowEvent $event)
+    public function execute(JoinEvent $event)
     {
         try {
             DB::beginTransaction();
 
-            $line_id = $event->getUserId();
-            $rsp = $this->bot->getProfile($line_id);
-            if (!$rsp->isSucceeded()) {
-                logger()->info('failed to get profile. skip processing.');
-                return false;
+            if ($event->isGroupEvent()) {
+                $line_id = $event->getGroupId();
+            } elseif ($event->isRoomEvent()) {
+                $line_id = $event->getRoomId();
+            } else {
+                throw new Error();
             }
 
-            $profile = $rsp->getJSONDecodedBody();
-            $line_friend = new LineFriend();
+            $line_friend = new LineGroup();
             $input = [
-                'line_id' => $line_id,
-                'display_name' => $profile['displayName'],
+                'line_group_id' => $line_id,
+                'display_name' => '',
             ];
 
             $line_friend->fill($input)->save();
+
             DB::commit();
 
             return true;
