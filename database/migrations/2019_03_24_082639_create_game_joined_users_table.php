@@ -18,6 +18,7 @@ class CreateGameJoinedUsersTable extends Migration
             $table->integer('user_id');
             $table->integer('game_id');
             $table->string('keyword')->nullable();
+            $table->integer('keyword_decide_user_id')->nullable();
             $table->boolean('is_joined');
             $table->timestamps();
         });

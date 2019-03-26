@@ -34,18 +34,23 @@
             data: {
                 spokenword: $("#message_to_watson").val()
             },
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
             dataType: 'json'
         }).done(function(response) {
-            console.log(response);
-            for (var i = 0, len = response.output.generic.length; i < len; i++) {
-                //JSONを返してきた場合
-                if (response.output.text[i] !== '') {
-                    $('#responseFromWatson li:last-child').text(response.output.text[i]);
-                } else if (response.output.generic instanceof Array) {
-                    const obj = response.output.generic;
-                    $('#responseFromWatson li:last-child').text(JSON.stringify(obj, undefined, 1));
-                }
-            }
+            $('#responseFromWatson li:last-child').text("帰ってきてるね");
+            // for (var i = 0, len = response.output.generic.length; i < len; i++) {
+            //     //JSONを返してきた場合
+            //     if (response.output.text[i] !== '') {
+            //         $('#responseFromWatson li:last-child').text(response.output.text[i]);
+            //         // } else if (response.output.generic instanceof Array) {
+            //         //     const obj = response.output.generic;
+            //         //     $('#responseFromWatson li:last-child').text(JSON.stringify(obj, undefined, 1));
+            //     } else {
+            //         $('#responseFromWatson li:last-child').text("帰ってきてるね");
+            //     }
+            // }
         }).fail(function() {
             alert(errorHandler(arguments));
         });

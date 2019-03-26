@@ -26,21 +26,34 @@ use LINE\LINEBot\TemplateActionBuilder\UriTemplateActionBuilder;
 
 use DB;
 use LINE\LINEBot\TemplateActionBuilder\PostbackTemplateActionBuilder;
+use LINE\LINEBot;
+use App\Services\Line\Event\FollowService;
 
 class GameSession
 {
     /**
      * クラス変数
      */
-    private $event;
+    private $bot;
     private $session;
     private $group_id;
     
     /**
      * すでにセッション開始していれば引き継ぐ
      */
-    public function __construct(BaseEvent $event)
+    public function __construct(LINEBot $bot)
     {
+        $this->bot = $bot;
+    }
+
+    public function continueSession($event)
+    {
+        // 登録していないユーザなら情報を取得して保存
+        if (LineFriend::where('line_id', $event->getUserId())->first() == null) {
+            $service = new FollowService($this->bot);
+            $service->execute($event);
+        }
+
         if ($event->isUserEvent()) {
             $group_data = LineFriend::where('line_id', $event->getUserId())->first();
         } else {
@@ -55,7 +68,6 @@ class GameSession
 
         $session = Game::where('group_id', $this->group_id)->latest()->first();
         if (isset($session) && $session->is_enable) {
-            $this->event = $event;
             $this->session = $session;
         }
     }
@@ -64,8 +76,9 @@ class GameSession
      * セッション開始
      * 参加者の募集
      */
-    public function prepareGame()
+    public function prepareGame(BaseEvent $event)
     {
+        $this->continueSession($event);
         try {
             DB::beginTransaction();
             $this->session = Game::create([
@@ -122,13 +135,14 @@ class GameSession
     /**
      * ユーザをゲームに登録
      */
-    public function joinGame()
+    public function joinGame($event)
     {
+        $this->continueSession($event);
         try {
             DB::beginTransaction();
 
-            $user_id = LineFriend::where('line_id', $this->event->getUserId())->first();
-
+            $user_id = LineFriend::where('line_id', $event->getUserId())->first();
+            logger()->info($user_id);
             if (GameJoinedUsers::where('game_id', $this->session->id)->where('user_id', $user_id->id)->first()) {
                 DB::rollBack();
                 return $user_id->display_name.'さんは参加受付済です';
@@ -152,8 +166,33 @@ class GameSession
     /**
      * お題の設定
      */
-    public function settingTheme()
+    public function settingTheme($event)
     {
+        $this->continueSession($event);
+        // お題設定担当を割り振り
+        try {
+            $joinedUsers = GameJoinedUsers::where('game_id', $this->session->id)->get();
+
+            // シャッフル
+            $users_id = array();
+            foreach ($joinedUsers as $joinedUser) {
+                array_push($users_id, $joinedUser->id);
+            }
+            if (count($users_id) > 1) {
+                $users_id = self::array_shuffle($users_id);
+            }
+
+            DB::beginTransaction();
+            foreach ($joinedUsers as $index => $joinedUser) {
+                $joinedUser->update(['keyword_decide_user_id' => $users_id[$index]]);
+            }
+            DB::commit();
+        } catch (Exception $e) {
+            logger()->error($e);
+            DB::rollBack();
+            return false;
+        }
+
         return FlexMessageBuilder::builder()
                 ->setAltText('お題を設定します')
                 ->setContents(
@@ -176,7 +215,7 @@ class GameSession
                                     ButtonComponentBuilder::builder()
                                     ->setStyle(ComponentButtonStyle::PRIMARY)
                                     ->setHeight(ComponentButtonHeight::MD)
-                                    ->setAction(new UriTemplateActionBuilder('お題を決める', 'line://app/1557900408-rL05MMWy'))
+                                    ->setAction(new UriTemplateActionBuilder('お題を決める', 'line://app/1557900408-rL05MMWy?session_id='.$this->session->id))
                                 ])
                         )
                 );
@@ -192,8 +231,9 @@ class GameSession
     /**
      * ゲーム終了
      */
-    public function endGame()
+    public function endGame($event)
     {
+        $this->continueSession($event);
         try {
             DB::beginTransaction();
             $this->session = Game::find($this->session->id)
@@ -205,5 +245,27 @@ class GameSession
             DB::rollBack();
             return false;
         }
+    }
+
+    /**
+     * 重複のないシャッフルをする関数
+     */
+    private static function array_shuffle($array)
+    {
+        $flag = true;
+        $keys = array_keys($array);
+        while ($flag) {
+            $result = array();
+            shuffle($keys);
+            foreach ($keys as $key=>$value) {
+                if ($key === $value) {
+                    $flag = true;
+                    break;
+                }
+                $result[] = $array[$value];
+                $flag = false;
+            }
+        }
+        return $result;
     }
 }

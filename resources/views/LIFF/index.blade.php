@@ -1,24 +1,18 @@
 @extends('layouts.liff')
 
 @section('content')
-<div class="container">
-    <div class="row">
-        <div class="col-md-6">
-            <input type="text" id="message_to_watson" placeholder="何か入れて下さい" class="form-control" />
-        </div>
-        <div class="col-md-2">
-            <input type="button" id="send_message" value="聞いてみる" class="btn btn-primary" />
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-6">
-            <label>ユーザー入力</label>
-            <ul id="input"></ul>
-        </div>
-        <div class="col-md-6">
-            <label>Watsonからの返答</label>
-            <ul id="responseFromWatson"></ul>
-        </div>
+<div class="card">
+    <h5 id="myName" class="card-header">あなたの名前</h5>
+    <div class="card-body">
+        <h5 class="card-title">へのへのさんのお題</h5>
+        <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+        <select class="custom-select custom-select-lg mb-3">
+            <option selected>Open this select menu</option>
+            <option value="1">One</option>
+            <option value="2">Two</option>
+            <option value="3">Three</option>
+        </select>
+        <button type="button" class="btn btn-primary btn-lg">決定</button>
     </div>
 </div>
 @endsection
@@ -26,30 +20,49 @@
 
 @section('script')
 <script>
-    $("#send_message").click(function() {
-        $('#input').append('<li>' + $("#message_to_watson").val() + '</li>')
-        $('#responseFromWatson').append('<li>' + 'Watson is thinking...' + '</li>')
-        $.ajax({
-            type: "POST",
-            url: "{{route('talk_to_watson')}}",
-            data: {
-                spokenword: $("#message_to_watson").val()
-            },
-            dataType: 'json'
-        }).done(function(response) {
-            console.log(response);
-            for (var i = 0, len = response.output.generic.length; i < len; i++) {
-                //JSONを返してきた場合
-                if (response.output.text[i] !== '') {
-                    $('#responseFromWatson li:last-child').text(response.output.text[i]);
-                } else if (response.output.generic instanceof Array) {
-                    const obj = response.output.generic;
-                    $('#responseFromWatson li:last-child').text(JSON.stringify(obj, undefined, 1));
-                }
+    $(function() {
+        liff.init(data => {
+            if (data.context.type == "none") alert("アプリ以外からは開けません");
+            if (data.context.userId) {
+                liff.getProfile().then(profile => {
+                    $("#myName").html(profile.displayName)
+                    fetch(`https://${document.domain}/api/liff_api`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            method: 'getDecider',
+                            sessionID: '{{ $gameSessionID }}',
+                            sourceID: getEventSourceId(data.context),
+                            userID: data.context.userId
+                        }), // 文字列で指定する
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8",
+                        },
+                        cache: "no-cache",
+                        mode: 'cors'
+                    }).then(response => {
+                        return response.json();
+                    }, err => alert(err)).then(data => {
+                        alert(JSON.stringify(data));
+                    })
+                })
             }
-        }).fail(function() {
-            alert(errorHandler(arguments));
-        });
+        }, error => {
+            alert("不明なエラー")
+        })
+
     });
+
+    function getEventSourceId(context) {
+        if (context.type == 'group') return context.groupId;
+        else if (context.type == 'room') return context.roomId
+        else if (context.type == 'utou') return context.utouId
+        else return null
+    }
 </script>
+@endsection
+
+@section('style')
+<style>
+    #myName {}
+</style>
 @endsection

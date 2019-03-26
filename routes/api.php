@@ -21,4 +21,5 @@ Route::group(['namespace' => 'Api'], function () {
     Route::post('/line/callback', 'LineBotController@callback')->name('line.callback');
 });
 
+Route::post('liff_api', 'LIFFController@callback')->name('liff_api');
 Route::post('talk_to_watson', 'WatsonCallController@talkToWatson')->name('talk_to_watson');

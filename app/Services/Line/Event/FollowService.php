@@ -24,12 +24,12 @@ class FollowService
     }
 
     /**
-     * 登録
-     * @param FollowEvent $event
+     * ユーザ登録
+     * @param BaseEvent $event
      * @return bool
      * @throws \Illuminate\Database\Eloquent\MassAssignmentException
      */
-    public function execute(FollowEvent $event)
+    public function execute($event)
     {
         try {
             DB::beginTransaction();

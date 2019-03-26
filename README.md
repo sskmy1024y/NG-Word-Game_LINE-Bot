@@ -13,3 +13,4 @@ $ php artisan migrate
 ```bash
 $ ./ngrok http 8000
 ```
+Forwarding URI to LINE Developers Account.

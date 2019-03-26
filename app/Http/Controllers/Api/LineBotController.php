@@ -50,7 +50,7 @@ class LineBotController
                 $event_log->line_id = $event->getEventSourceId();
                 $event_log->event_type = $event->getType();
 
-                $game_session = new GameSession($event);
+                $game_session = new GameSession($bot);
 
                 switch (true) {
                     //友達登録＆ブロック解除
@@ -77,16 +77,16 @@ class LineBotController
                                                 switch ($option) {
                                                     case "preparegame":
                                                         $event_log->contents = '[system_call] game wakeup';
-                                                        $reply_message = $game_session->prepareGame();
+                                                        $reply_message = $game_session->prepareGame($event);
                                                         break;
                                                     case "joingame":
                                                         $event_log->contents = '[system_call] user join to game';
-                                                        $reply_message = $game_session->joinGame();
+                                                        $reply_message = $game_session->joinGame($event);
                                                         break;
                                                     
                                                     case "endgame":
                                                         $event_log->contents = '[system_call] game end';
-                                                        $reply_message = $game_session->endGame();
+                                                        $reply_message = $game_session->endGame($event);
                                                         break;
                                                 }
                                             }
@@ -116,12 +116,10 @@ class LineBotController
                         if ($params['action']) {
                             switch ($params['action']) {
                                 case 'gamestart':
-                                    $reply_message = $game_session->settingTheme();
+                                    $reply_message = $game_session->settingTheme($event);
                                     break;
                             }
                         }
-
-                        logger()->info($event->getPostbackParams());
                         break;
 
                     //ブロック
