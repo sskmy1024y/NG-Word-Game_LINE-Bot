@@ -61,7 +61,7 @@ class LIFFController extends Controller
                     $response['users'] = [];
                     foreach ($users as $user) {
                         array_push($response['users'], [
-                        'name' => $user->getDecideUserData->display_name,
+                        'name' => $user->getUserData->display_name,
                         'keyword' => $user->keyword->word
                     ]);
                     }
@@ -74,7 +74,7 @@ class LIFFController extends Controller
                 $response['users'] = [];
                 foreach ($users as $user) {
                     array_push($response['users'], [
-                        'name' => $user->getDecideUserData->display_name,
+                        'name' => $user->getUserData->display_name,
                         'keyword' => $user->keyword->word
                     ]);
                 }
