@@ -4,15 +4,19 @@
 <div class="card">
     <h5 id="myName" class="card-header">あなたの名前</h5>
     <div class="card-body">
-        <h5 class="card-title">へのへのさんのお題</h5>
-        <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
-        <select class="custom-select custom-select-lg mb-3">
-            <option selected>Open this select menu</option>
-            <option value="1">One</option>
-            <option value="2">Two</option>
-            <option value="3">Three</option>
-        </select>
-        <button type="button" class="btn btn-primary btn-lg">決定</button>
+        <h5 class="card-title">みんなのお題</h5>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">名前</th>
+                    <th scope="col">お題</th>
+                </tr>
+            </thead>
+            <tbody id="tablebody">
+
+            </tbody>
+        </table>
+        <button type="button" id="closeButton" class="btn btn-primary btn-lg btn-block">閉じる</button>
     </div>
 </div>
 @endsection
@@ -29,7 +33,7 @@
                     fetch(`https://${document.domain}/api/liff_api`, {
                         method: 'POST',
                         body: JSON.stringify({
-                            method: 'getDecider',
+                            method: 'getEveryKeywords',
                             sessionID: '{{ $gameSessionID }}',
                             sourceID: getEventSourceId(data.context),
                             userID: data.context.userId
@@ -41,8 +45,17 @@
                         mode: 'cors'
                     }).then(response => {
                         return response.json();
-                    }, err => alert(err)).then(data => {
-                        alert(JSON.stringify(data));
+                    }, err => alert(err)).then(res => {
+                        if (res.keyword == 'SINGLE_PLAYER') {
+                            $('#tablebody').append($(
+                                `<tr><td>あなた一人です</td><td>キーワードは秘密だよ</td></tr>`
+                            ));
+                        }
+                        res.users.forEach(user => {
+                            $('#tablebody').append($(
+                                `<tr><td>${user.name}</td><td>${user.keyword}</td></tr>`
+                            ));
+                        });
                     })
                 })
             }
@@ -50,6 +63,9 @@
             alert("不明なエラー")
         })
 
+        $('#closeButton').click(() => {
+            liff.closeWindow()
+        })
     });
 
     function getEventSourceId(context) {

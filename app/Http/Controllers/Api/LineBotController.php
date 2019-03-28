@@ -83,11 +83,19 @@ class LineBotController
                                                         $event_log->contents = '[system_call] user join to game';
                                                         $reply_message = $game_session->joinGame($event);
                                                         break;
-                                                    
+                                                    case "joined_user_check":
+                                                        if ($game_session->isKeywordAllDecided($event)) {
+                                                            $reply_message = $game_session->gameStart($event);
+                                                        }
+                                                        break;
                                                     case "endgame":
                                                         $event_log->contents = '[system_call] game end';
                                                         $reply_message = $game_session->endGame($event);
                                                         break;
+                                                }
+                                            } elseif ($optkey == 'check_word') {
+                                                if ($game_session->checkOwnWord($event, $option)) {
+                                                    $reply_message = $game_session->gameResult($event);
                                                 }
                                             }
                                         }
@@ -135,6 +143,7 @@ class LineBotController
                         break;
                     
                     // グループに追加された時
+                    case $event instanceof LINEBot\Event\MemberJoinEvent:
                     case $event instanceof LINEBot\Event\JoinEvent:
                         //JoinServiceクラスでDBに書き込み
                         $service = new JoinService($bot);
@@ -148,7 +157,7 @@ class LineBotController
                         logger()->warning('Unknown event. ['. get_class($event) . ']', compact('body'));
                 }
 
-                $event_log->save();
+                // $event_log->save();
                 DB::commit();
             } catch (Exception $e) {
                 logger()->error($e);

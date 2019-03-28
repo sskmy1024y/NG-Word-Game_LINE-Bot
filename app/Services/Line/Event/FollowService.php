@@ -58,4 +58,42 @@ class FollowService
             return false;
         }
     }
+
+    public function pushProfile($event, $userId)
+    {
+        try {
+            DB::beginTransaction();
+
+            if ($event->isGroupEvent()) {
+                $groupId = $event->getGroupId();
+                $rsp = $this->bot->getGroupMemberProfile($groupId, $userId);
+            } elseif ($event->isRoomEvent()) {
+                $groupId = $event->getRoomId();
+                $rsp = $this->bot->getRoomMemberProfile($groupId, $userId);
+            } else {
+                return false;
+            }
+            
+            if (!$rsp->isSucceeded()) {
+                logger()->info('failed to get profile. skip processing.');
+                return false;
+            }
+
+            $profile = $rsp->getJSONDecodedBody();
+            $line_friend = new LineFriend();
+            $input = [
+                'line_id' => $userId,
+                'display_name' => $profile['displayName'],
+            ];
+
+            $line_friend->fill($input)->save();
+            DB::commit();
+
+            return true;
+        } catch (Exception $e) {
+            logger()->error($e);
+            DB::rollBack();
+            return false;
+        }
+    }
 }
