@@ -26,7 +26,7 @@
             if (data.context.userId) {
                 liff.getProfile().then(profile => {
                     $("#myName").html(profile.displayName)
-                    fetch(`https://${document.URL}/api/liff_api`, {
+                    fetch(`${document.URL}/api/liff_api`, {
                         method: 'POST',
                         body: JSON.stringify({
                             method: 'getDecider',
