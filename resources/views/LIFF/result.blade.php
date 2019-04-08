@@ -42,6 +42,7 @@
             }).then(response => {
                 return response.json();
             }, err => alert(err)).then(res => {
+                $('#loading').hide(); // ローディングを消す
                 res.users.forEach(user => {
                     $('#tablebody').append($(
                         `<tr><td>${user.name}</td><td>${user.keyword}</td></tr>`

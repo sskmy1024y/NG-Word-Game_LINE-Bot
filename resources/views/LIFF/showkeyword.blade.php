@@ -46,6 +46,7 @@
                     }).then(response => {
                         return response.json();
                     }, err => alert(err)).then(res => {
+                        $('#loading').hide(); // ローディングを消す
                         if (res.keyword == 'SINGLE_PLAYER') {
                             $('#tablebody').append($(
                                 `<tr><td>あなた一人です</td><td>キーワードは秘密だよ</td></tr>`

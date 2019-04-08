@@ -83,6 +83,10 @@ class LineBotController
                                                         $event_log->contents = '[system_call] user join to game';
                                                         $reply_message = $game_session->joinGame($event);
                                                         break;
+                                                    case "restgame":
+                                                        $event_log->contents = '[system_call] user rest to game';
+                                                        $reply_message = $game_session->restGame($event);
+                                                        break;
                                                     case "joined_user_check":
                                                         if ($game_session->isKeywordAllDecided($event)) {
                                                             $reply_message = $game_session->gameStart($event);

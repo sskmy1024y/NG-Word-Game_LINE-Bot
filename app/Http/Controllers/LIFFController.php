@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\LineFriend;
 use App\Models\GameThemeKeyword;
 use DB;
+use App\Models\Game;
 
 class LIFFController extends Controller
 {
@@ -35,50 +36,57 @@ class LIFFController extends Controller
         try {
             DB::beginTransaction();
             switch ($request->method) {
-            case 'getDecider':
-                //相手のIDを取得
-                $id = LineFriend::where('line_id', $request->userID)->first()->id;
-                $response["decide_user_name"] = GameJoinedUsers::where('game_id', $request->sessionID)->where('user_id', $id)->first()->getDecideUserData->display_name;
-                // ランダムにワードを取得
-                $words = GameThemeKeyword::inRandomOrder()->limit(3)->get();
-                $response['candidacy_keywords'] = [];
-                foreach ($words as $word) {
-                    array_push($response['candidacy_keywords'], ['key' => $word->id, 'value' => $word->word]);
-                }
-                break;
-            case 'selectedWord':
-                $id = LineFriend::where('line_id', $request->userID)->first()->id;
-                GameJoinedUsers::where('game_id', $request->sessionID)->where('user_id', $id)->first()->update(['keyword_id' => $request->keywordID]);
-                $response['success'] = true;
-                break;
-            case 'getEveryKeywords':
-                $id = LineFriend::where('line_id', $request->userID)->first()->id;
-                $users = GameJoinedUsers::where('game_id', $request->sessionID)->whereNotIn('user_id', [$id])->get();
-                logger()->info($id);
-                logger()->info($users);
+                case 'getDecider':
+                    //相手のIDを取得
+                    if (Game::find($request->sessionID)->status->name != 'decide-theme') {
+                        break;
+                    }
+                    $id = LineFriend::where('line_id', $request->userID)->first()->id;
+                    $response["decide_user_name"] = GameJoinedUsers::where('game_id', $request->sessionID)->where('user_id', $id)->first()->getDecideUserData->display_name;
+                    // ランダムにワードを取得
+                    $words = GameThemeKeyword::inRandomOrder()->limit(3)->get();
+                    $response['candidacy_keywords'] = [];
+                    foreach ($words as $word) {
+                        array_push($response['candidacy_keywords'], ['key' => $word->id, 'value' => $word->word]);
+                    }
+                    $response['success'] = true;
+                    break;
+                case 'selectedWord':
+                    if (Game::find($request->sessionID)->status->name != 'decide-theme') {
+                        break;
+                    }
+                    $id = LineFriend::where('line_id', $request->userID)->first()->id;
+                    GameJoinedUsers::where('game_id', $request->sessionID)->where('user_id', $id)->first()->update(['keyword_id' => $request->keywordID]);
+                    $response['success'] = true;
+                    break;
+                case 'getEveryKeywords':
+                    $id = LineFriend::where('line_id', $request->userID)->first()->id;
+                    $users = GameJoinedUsers::where('game_id', $request->sessionID)->whereNotIn('user_id', [$id])->get();
+                    logger()->info($id);
+                    logger()->info($users);
 
-                if (count($users) > 0) {
+                    if (count($users) > 0) {
+                        $response['users'] = [];
+                        foreach ($users as $user) {
+                            array_push($response['users'], [
+                            'name' => $user->getUserData->display_name,
+                            'keyword' => $user->keyword->word
+                        ]);
+                        }
+                    } else {
+                        $response['keyword'] = 'SINGLE_PLAYER';
+                    }
+                    break;
+                case 'result':
+                    $users = GameJoinedUsers::where('game_id', $request->sessionID)->get();
                     $response['users'] = [];
                     foreach ($users as $user) {
                         array_push($response['users'], [
-                        'name' => $user->getUserData->display_name,
-                        'keyword' => $user->keyword->word
-                    ]);
+                            'name' => $user->getUserData->display_name,
+                            'keyword' => $user->keyword->word
+                        ]);
                     }
-                } else {
-                    $response['keyword'] = 'SINGLE_PLAYER';
-                }
-                break;
-            case 'result':
-                $users = GameJoinedUsers::where('game_id', $request->sessionID)->get();
-                $response['users'] = [];
-                foreach ($users as $user) {
-                    array_push($response['users'], [
-                        'name' => $user->getUserData->display_name,
-                        'keyword' => $user->keyword->word
-                    ]);
-                }
-                break;
+                    break;
             }
             DB::commit();
         } catch (Exeption $e) {

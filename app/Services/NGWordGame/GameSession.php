@@ -137,14 +137,22 @@ class GameSession
     public function joinGame($event)
     {
         $this->continueSession($event);
+        if ($this->session->status->name != 'recruting') {
+            return false;
+        }
         try {
             DB::beginTransaction();
 
             $user_id = LineFriend::where('line_id', $event->getUserId())->first();
             
-            if (GameJoinedUsers::where('game_id', $this->session->id)->where('user_id', $user_id->id)->first()) {
-                DB::rollBack();
-                return $user_id->display_name.'さんは参加受付済です';
+            $joinedUser = GameJoinedUsers::where('game_id', $this->session->id)->where('user_id', $user_id->id)->first();
+            if (isset($joinedUser)) {
+                if (!$joinedUser->is_joined) {
+                    $joinedUser->update(['is_joined' => true]);
+                } else {
+                    DB::rollBack();
+                    return $user_id->display_name.'さんは参加受付済です';
+                }
             } else {
                 $this->session = GameJoinedUsers::create([
                     'user_id' => $user_id->id,
@@ -152,9 +160,48 @@ class GameSession
                     'keyword' => '',
                     'is_joined' => true
                 ]);
-                DB::commit();
-                return $user_id->display_name.'さんの参加を受け付けました';
             }
+            DB::commit();
+            return $user_id->display_name.'さんの参加を受け付けました';
+        } catch (Exception $e) {
+            logger()->error($e);
+            DB::rollBack();
+            return false;
+        }
+    }
+
+    /**
+     * ユーザがおやすみする場合
+     */
+    public function restGame($event)
+    {
+        $this->continueSession($event);
+        if ($this->session->status->name != 'recruting') {
+            return false;
+        }
+        try {
+            DB::beginTransaction();
+
+            $user_id = LineFriend::where('line_id', $event->getUserId())->first();
+            
+            $joinedUser = GameJoinedUsers::where('game_id', $this->session->id)->where('user_id', $user_id->id)->first();
+            if (isset($joinedUser)) {
+                if ($joinedUser->is_joined) {
+                    $joinedUser->update(['is_joined' => false]);
+                } else {
+                    DB::rollBack();
+                    return $user_id->display_name.'さんは見学受付済です';
+                }
+            } else {
+                $this->session = GameJoinedUsers::create([
+                    'user_id' => $user_id->id,
+                    'game_id' => $this->session->id,
+                    'keyword' => '',
+                    'is_joined' => false
+                ]);
+            }
+            DB::commit();
+            return $user_id->display_name.'さんの見学を受け付けました';
         } catch (Exception $e) {
             logger()->error($e);
             DB::rollBack();
@@ -174,7 +221,11 @@ class GameSession
         }
         // お題設定担当を割り振り
         try {
-            $joinedUsers = GameJoinedUsers::where('game_id', $this->session->id)->get();
+            $joinedUsers = GameJoinedUsers::where('game_id', $this->session->id)->where('is_joined', true)->get();
+
+            if (count($joinedUsers) < 1) {
+                return "参加人数が足りません！";
+            }
 
             // シャッフル
             $usersId = array();
@@ -201,7 +252,7 @@ class GameSession
         }
 
         return FlexMessageBuilder::builder()
-                ->setAltText('お題を設定します')
+                ->setAltText('募集〆切！ お題を設定します')
                 ->setContents(
                     BubbleContainerBuilder::builder()
                         ->setBody(
@@ -209,7 +260,11 @@ class GameSession
                             ->setLayout(ComponentLayout::VERTICAL)
                             ->setContents([
                                 TextComponentBuilder::builder()
-                                    ->setText('相手のお題を決める')
+                                    ->setText('募集を終了しました！')
+                                    ->setSize(ComponentFontSize::SM)
+                                ], [
+                                TextComponentBuilder::builder()
+                                    ->setText('相手のお題を決めてください')
                                     ->setSize(ComponentFontSize::SM)
                                 ])
                             )
@@ -234,6 +289,9 @@ class GameSession
     public function isKeywordAllDecided($event)
     {
         $this->continueSession($event);
+        if ($this->session->status->name != 'decide-theme') {
+            return false;
+        }
         $joinedUsers = GameJoinedUsers::where('game_id', $this->session->id)->get();
 
         $result = true;
@@ -294,6 +352,9 @@ class GameSession
                 );
     }
 
+    /**
+     *
+     */
     public function checkOwnWord($event, $word)
     {
         $this->continueSession($event);
@@ -308,6 +369,9 @@ class GameSession
     public function gameResult($event)
     {
         $this->continueSession($event);
+        if ($this->session->status->name != 'nowplaying') {
+            return false;
+        }
         try {
             $user = LineFriend::where('line_id', $event->getUserId())->first();
             $keyword = GameJoinedUsers::where('game_id', $this->session->id)->where('user_id', $user->id)->first()->keyword->word;
@@ -317,7 +381,7 @@ class GameSession
             DB::commit();
 
             return FlexMessageBuilder::builder()
-                ->setAltText($user.'さんの負けです!')
+                ->setAltText($user->display_name.'さんの負けです!')
                 ->setContents(
                     BubbleContainerBuilder::builder()
                         ->setHeader(
@@ -390,5 +454,19 @@ class GameSession
         } else {
             return $array;
         }
+    }
+
+    /**
+     * some関数
+     */
+    private static function array_some($array, $callable)
+    {
+        $count = count($array);
+        for ($i = 0; $i < $count; $i +=1) {
+            if ($callable($array[$i])) {
+                return true;
+            }
+        }
+        return false;
     }
 }

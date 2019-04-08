@@ -3,12 +3,16 @@
 @section('content')
 <div class="card">
     <h5 id="myName" class="card-header">あなたの名前</h5>
-    <div class="card-body">
+    <div id="changable" class="card-body" style="display:none">
         <h5 class="card-title"><span id="decide-user"></span>さんのお題を選んでね</h5>
         <p class="card-text">相手が言ってはいけないワードを選ぼう</p>
         <select id="selected-word" class="custom-select custom-select-lg mb-3">
         </select>
         <button type="button" id="submitButton" class="btn btn-primary btn-lg">決定</button>
+    </div>
+    <div id="nochange" class="card-body" style="display:none">
+        <h5 class="card-title">もう変えられないよ</h5>
+        <button type="button" id="submitButton" class="btn btn-primary btn-lg">閉じる</button>
     </div>
 </div>
 @endsection
@@ -38,6 +42,12 @@
                     }).then(response => {
                         return response.json();
                     }, err => alert(err)).then(res => {
+                        $('#loading').hide(); // ローディングを消す
+                        if (!res.success) { // 変更できない
+                            $('#nochange').show();
+                            return false;
+                        }
+                        $('#changable').show();
                         $('#decide-user').html(res.decide_user_name)
                         res.candidacy_keywords.forEach(keyword => {
                             $('#selected-word').append($('<option>').html(
@@ -46,6 +56,7 @@
                         $('#submitButton').click(() => {
                             submitKeyword(data)
                         });
+
                     })
                 })
             }
@@ -82,16 +93,19 @@
         }).then(response => {
             return response.json();
         }, err => alert(err)).then(data => {
-            liff.sendMessages([{
-                    type: 'text',
-                    text: decideUserName + "さんのワードを決めました！"
-                }])
-                .then(() => {
-                    liff.closeWindow()
-                })
-                .catch((err) => {
-                    alert("不明なエラーが発生しました")
-                });
+            if (!data.success) liff.closeWindow();
+            else {
+                liff.sendMessages([{
+                        type: 'text',
+                        text: decideUserName + "さんのワードを決めました！"
+                    }])
+                    .then(() => {
+                        liff.closeWindow()
+                    })
+                    .catch((err) => {
+                        alert("不明なエラーが発生しました")
+                    });
+            }
         })
     }
 </script>
