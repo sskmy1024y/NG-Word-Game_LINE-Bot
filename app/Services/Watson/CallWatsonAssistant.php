@@ -23,7 +23,7 @@ class CallWatsonAssistant
         ];
         $requestData  = json_encode(['input'=>['text'=>$spokenWord],'context'=>$context]);
         $headers = ['Content-Type' => 'application/json','Content-Length' => strlen($requestData)];
-        $path         = config('watson.workspace_id') . '/message?version=2018-11-03';
+        $path         = config('watson.workspace_id') . '/message?version=2019-01-03';
         $guzzleClient = new Client(['base_uri'=>'https://gateway.watsonplatform.net/assistant/api/v1/workspaces/']);
         return $guzzleClient->request('POST', $path, ['headers'=> $headers,'body'=>$requestData, 'auth' => [config('watson.user_name'), config('watson.password')]])->getBody()->getContents();
     }

@@ -1,4 +1,4 @@
-# Word Wolf LineBot
+# NG Word Game LineBot
 
 ## How to setup
 ```bash
@@ -13,3 +13,4 @@ $ php artisan migrate
 ```bash
 $ ./ngrok http 8000
 ```
+Forwarding URI to LINE Developers Account.

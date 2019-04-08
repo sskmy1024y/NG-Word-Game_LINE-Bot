@@ -17,3 +17,5 @@
 // });
 
 Route::get('/', 'WatsonCallController@index')->name('index');
+
+Route::get('/liff', 'LIFFController@index')->name('index');

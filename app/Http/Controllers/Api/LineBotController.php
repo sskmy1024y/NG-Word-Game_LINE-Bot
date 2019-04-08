@@ -7,6 +7,11 @@ use App\Services\Line\Event\RecieveTextService;
 use App\Services\Line\Event\RecieveImageService;
 use App\Services\Line\Event\RecieveStickerService;
 use App\Services\Line\Event\FollowService;
+use App\Services\Line\Event\JoinService;
+use App\Services\NGWordGame\GameSession;
+
+use App\Services\Line\MessageBuilder\FlexMessage;
+
 use App\Models\LineEventLogs;
 use Illuminate\Http\Request;
 use LINE\LINEBot;
@@ -42,8 +47,10 @@ class LineBotController
                 DB::beginTransaction();
 
                 $event_log = new LineEventLogs();
-                $event_log->line_id = $event->getUserId();
+                $event_log->line_id = $event->getEventSourceId();
                 $event_log->event_type = $event->getType();
+
+                $game_session = new GameSession($bot);
 
                 switch (true) {
                     //友達登録＆ブロック解除
@@ -54,11 +61,52 @@ class LineBotController
                             : '友達登録されたけど、登録処理に失敗したから、何もしないよ';
 
                         break;
-                    //メッセージの受信
-                    case $event instanceof LINEBot\Event\MessageEvent\TextMessage:
-                        $service = new RecieveTextService($bot);
-                        $reply_message = $event_log->contents = $service->execute($event);
-                        break;
+
+                        //メッセージの受信
+                        case $event instanceof LINEBot\Event\MessageEvent\TextMessage:
+                            $service = new RecieveTextService($bot);
+                            $responses = $service->execute($event);
+                            $reply_message = null;
+
+                            // Watsonからのレスポンスによって処理を分岐
+                            foreach ($responses as $response) {
+                                switch ($response['type']) {
+                                    case 'option':
+                                        foreach ($response['body'] as $optkey => $option) {
+                                            if ($optkey == 'system_call') {
+                                                switch ($option) {
+                                                    case "preparegame":
+                                                        $event_log->contents = '[system_call] game wakeup';
+                                                        $reply_message = $game_session->prepareGame($event);
+                                                        break;
+                                                    case "joingame":
+                                                        $event_log->contents = '[system_call] user join to game';
+                                                        $reply_message = $game_session->joinGame($event);
+                                                        break;
+                                                    case "restgame":
+                                                        $event_log->contents = '[system_call] user rest to game';
+                                                        $reply_message = $game_session->restGame($event);
+                                                        break;
+                                                    case "joined_user_check":
+                                                        if ($game_session->isKeywordAllDecided($event)) {
+                                                            $reply_message = $game_session->gameStart($event);
+                                                        }
+                                                        break;
+                                                    case "endgame":
+                                                        $event_log->contents = '[system_call] game end';
+                                                        $reply_message = $game_session->endGame($event);
+                                                        break;
+                                                }
+                                            } elseif ($optkey == 'check_word') {
+                                                if ($game_session->checkOwnWord($event, $option)) {
+                                                    $reply_message = $game_session->gameResult($event);
+                                                }
+                                            }
+                                        }
+                                        break;
+                                }
+                            }
+                            break;
 
                     //位置情報の受信
                     case $event instanceof LINEBot\Event\MessageEvent\LocationMessage:
@@ -68,6 +116,22 @@ class LineBotController
 
                     //選択肢とか選んだ時に受信するイベント
                     case $event instanceof LINEBot\Event\PostbackEvent:
+                        // パラメタを正規化
+                        $tmp_data = $event->getPostbackData();
+                        $tmp_params = explode('&', $tmp_data);
+                        $params = [];
+                        foreach ($tmp_params as $key) {
+                            $split = explode('=', $key);
+                            $params[$split[0]] = $split[1];
+                        }
+
+                        if ($params['action']) {
+                            switch ($params['action']) {
+                                case 'gamestart':
+                                    $reply_message = $game_session->settingTheme($event);
+                                    break;
+                            }
+                        }
                         break;
 
                     //ブロック
@@ -79,7 +143,17 @@ class LineBotController
                         break;
 
                     case $event instanceof LINEBot\Event\MessageEvent\StickerMessage:
-                        $reply_message =$event_log->contents = 'スタンプ';
+                        $reply_message = $event_log->contents = 'スタンプ';
+                        break;
+                    
+                    // グループに追加された時
+                    case $event instanceof LINEBot\Event\MemberJoinEvent:
+                    case $event instanceof LINEBot\Event\JoinEvent:
+                        //JoinServiceクラスでDBに書き込み
+                        $service = new JoinService($bot);
+                        $reply_message = $service->execute($event)
+                            ? 'グループに追加してくれてありがとう〜！このゲームは「NGワードゲーム」。自分のNGワードを言わないように気をつけながら、相手のNGワードを言わせよう！'
+                            : 'なんか登録できんかった';
                         break;
 
                     default:
@@ -87,14 +161,18 @@ class LineBotController
                         logger()->warning('Unknown event. ['. get_class($event) . ']', compact('body'));
                 }
 
-                $event_log->save();
+                // $event_log->save();
                 DB::commit();
             } catch (Exception $e) {
                 logger()->error($e);
                 DB::rollBack();
             }
             
-            $bot->replyText($reply_token, $reply_message);
+            if (is_string($reply_message)) {
+                $bot->replyText($reply_token, $reply_message);
+            } elseif ($reply_message instanceof LINEBot\MessageBuilder) {
+                $bot->replyMessage($reply_token, $reply_message);
+            }
         }
     }
 }

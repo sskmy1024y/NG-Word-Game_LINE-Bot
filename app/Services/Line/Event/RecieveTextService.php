@@ -25,7 +25,7 @@ class RecieveTextService
     }
 
     /**
-     * 登録
+     *
      * @param TextMessage $event
      * @return string
      */
@@ -34,12 +34,6 @@ class RecieveTextService
         $fb = new FaufBridge();
         $request['text'] = $event->getText();
         $responses = $fb->callAI($request);
-
-        foreach ($responses as $response) {
-            if (is_string($response)) {
-                return $response;
-            }
-        }
 
         return $responses;
     }
