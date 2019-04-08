@@ -76,7 +76,7 @@
     function submitKeyword(liffData) {
         const decideUserName = $('#decide-user').text();
         const keyword_id = $('#selected-word').val();
-        fetch(`https://${document.domain}/api/liff_api`, {
+        fetch(`https://${document.domain}${location.pathname}/../api/liff_api`, {
             method: 'POST',
             body: JSON.stringify({
                 method: 'selectedWord',
