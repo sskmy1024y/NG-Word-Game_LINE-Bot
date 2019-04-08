@@ -30,7 +30,7 @@
             if (data.context.userId) {
                 liff.getProfile().then(profile => {
                     $("#myName").html(profile.displayName)
-                    fetch(`${document.URL}/api/liff_api`, {
+                    fetch(`https://${document.domain}${location.pathname}/../api/liff_api`, {
                         method: 'POST',
                         body: JSON.stringify({
                             method: 'getEveryKeywords',
