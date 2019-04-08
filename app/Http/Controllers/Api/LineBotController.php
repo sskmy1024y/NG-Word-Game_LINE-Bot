@@ -57,8 +57,8 @@ class LineBotController
                     case $event instanceof LINEBot\Event\FollowEvent:
                         $service = new FollowService($bot);
                         $reply_message = $service->execute($event)
-                            ? '友達登録されたからLINE ID引っこ抜いたわー'
-                            : '友達登録されたけど、登録処理に失敗したから、何もしないよ';
+                            ? '自分のNGワードを言わないように気をつけながら、相手のNGワードを言わせよう！\\n このゲームは一人でもできるけど、グループに追加してみんなでやったほうが盛り上がるよ！'
+                            : '登録に失敗しちゃったので、システム管理者に連絡してください！';
 
                         break;
 
@@ -161,7 +161,7 @@ class LineBotController
                         logger()->warning('Unknown event. ['. get_class($event) . ']', compact('body'));
                 }
 
-                // $event_log->save();
+                $event_log->save();
                 DB::commit();
             } catch (Exception $e) {
                 logger()->error($e);
