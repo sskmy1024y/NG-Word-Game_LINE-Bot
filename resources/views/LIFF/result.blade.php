@@ -27,7 +27,7 @@
     $(function() {
         liff.init(data => {
             if (data.context.type == "none") alert("アプリ以外からは開けません");
-            fetch(`https://${document.domain}/api/liff_api`, {
+            fetch(`https://${document.URL}/api/liff_api`, {
                 method: 'POST',
                 body: JSON.stringify({
                     method: 'result',
