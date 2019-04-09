@@ -12,7 +12,7 @@
     </div>
     <div id="nochange" class="card-body" style="display:none">
         <h5 class="card-title">もう変えられないよ</h5>
-        <button type="button" id="submitButton" class="btn btn-primary btn-lg">閉じる</button>
+        <button type="button" id="closeButton" class="btn btn-primary btn-lg">閉じる</button>
     </div>
 </div>
 @endsection
@@ -45,6 +45,9 @@
                         $('#loading').hide(); // ローディングを消す
                         if (!res.success) { // 変更できない
                             $('#nochange').show();
+                            $('#closeButton').click(() => {
+                                liff.closeWindow()
+                            })
                             return false;
                         }
                         $('#changable').show();
