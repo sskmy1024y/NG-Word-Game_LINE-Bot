@@ -57,7 +57,7 @@ class LineBotController
                     case $event instanceof LINEBot\Event\FollowEvent:
                         $service = new FollowService($bot);
                         $reply_message = $service->execute($event)
-                            ? '自分のNGワードを言わないように気をつけながら、相手のNGワードを言わせよう！\\n このゲームは一人でもできるけど、グループに追加してみんなでやったほうが盛り上がるよ！'
+                            ? '自分のNGワードを言わないように気をつけながら、相手のNGワードを言わせよう！'."\n".'このゲームは一人でもできるけど、グループに追加してみんなでやったほうが盛り上がるよ！'
                             : '登録に失敗しちゃったので、システム管理者に連絡してください！';
 
                         break;
@@ -139,11 +139,11 @@ class LineBotController
                         break;
                     
                     case $event instanceof LINEBot\Event\MessageEvent\ImageMessage:
-                        $reply_message = $event_log->contents = '画像';
+                        // $reply_message = $event_log->contents = '画像';
                         break;
 
                     case $event instanceof LINEBot\Event\MessageEvent\StickerMessage:
-                        $reply_message = $event_log->contents = 'スタンプ';
+                        // $reply_message = $event_log->contents = 'スタンプ';
                         break;
                     
                     // グループに追加された時
@@ -152,8 +152,8 @@ class LineBotController
                         //JoinServiceクラスでDBに書き込み
                         $service = new JoinService($bot);
                         $reply_message = $service->execute($event)
-                            ? 'グループに追加してくれてありがとう〜！このゲームは「NGワードゲーム」。自分のNGワードを言わないように気をつけながら、相手のNGワードを言わせよう！'
-                            : 'なんか登録できんかった';
+                            ? 'グループに追加してくれてありがとう〜！このゲームは「NGワードゲーム」。'."\n".'自分のNGワードを言わないように気をつけながら、相手のNGワードを言わせよう！'
+                            : 'エラーが発生しました。開発者に連絡をしてください。';
                         break;
 
                     default:

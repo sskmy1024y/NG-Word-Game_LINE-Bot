@@ -37,12 +37,14 @@ class LIFFController extends Controller
             DB::beginTransaction();
             switch ($request->method) {
                 case 'getDecider':
-                    //相手のIDを取得
                     if (Game::find($request->sessionID)->status->name != 'decide-theme') {
                         break;
                     }
+                    //相手のIDを取得
                     $id = LineFriend::where('line_id', $request->userID)->first()->id;
                     $response["decide_user_name"] = GameJoinedUsers::where('game_id', $request->sessionID)->where('user_id', $id)->first()->getDecideUserData->display_name;
+                    logger()->info($id);
+                    logger()->info($response["decide_user_name"]);
                     // ランダムにワードを取得
                     $words = GameThemeKeyword::inRandomOrder()->limit(3)->get();
                     $response['candidacy_keywords'] = [];
@@ -55,8 +57,11 @@ class LIFFController extends Controller
                     if (Game::find($request->sessionID)->status->name != 'decide-theme') {
                         break;
                     }
-                    $id = LineFriend::where('line_id', $request->userID)->first()->id;
-                    GameJoinedUsers::where('game_id', $request->sessionID)->where('user_id', $id)->first()->update(['keyword_id' => $request->keywordID]);
+                    $id =  LineFriend::where('line_id', $request->userID)->first()->id;
+                    // 相手のユーザーID
+                    $oppoId = GameJoinedUsers::where('game_id', $request->sessionID)->where('user_id', $id)->first()->getDecideUserData->id;
+                    GameJoinedUsers::where('game_id', $request->sessionID)->where('user_id', $oppoId)->first()->update(['keyword_id' => $request->keywordID]);
+                    logger()->info(GameJoinedUsers::where('game_id', $request->sessionID)->where('user_id', $oppoId)->first()->getDecideUserData);
                     $response['success'] = true;
                     break;
                 case 'getEveryKeywords':

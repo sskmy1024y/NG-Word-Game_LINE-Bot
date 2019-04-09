@@ -261,8 +261,7 @@ class GameSession
                             ->setContents([
                                 TextComponentBuilder::builder()
                                     ->setText('募集を終了しました！')
-                                    ->setSize(ComponentFontSize::SM)
-                                ], [
+                                    ->setSize(ComponentFontSize::SM),
                                 TextComponentBuilder::builder()
                                     ->setText('相手のお題を決めてください')
                                     ->setSize(ComponentFontSize::SM)
