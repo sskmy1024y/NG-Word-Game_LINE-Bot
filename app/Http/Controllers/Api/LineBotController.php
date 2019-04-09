@@ -136,14 +136,9 @@ class LineBotController
 
                     //ブロック
                     case $event instanceof LINEBot\Event\UnfollowEvent:
-                        break;
-                    
                     case $event instanceof LINEBot\Event\MessageEvent\ImageMessage:
-                        // $reply_message = $event_log->contents = '画像';
-                        break;
-
                     case $event instanceof LINEBot\Event\MessageEvent\StickerMessage:
-                        // $reply_message = $event_log->contents = 'スタンプ';
+                        $reply_message = null;
                         break;
                     
                     // グループに追加された時
