@@ -33,6 +33,9 @@ class GameThemeKeywordSeeder extends Seeder
             "word" => "マジ",
         ]);
 
+        DB::table("game_theme_keywords")->insert([
+            "word" => "工科大",
+        ]);
 
         DB::table("game_theme_keywords")->insert([
             "word" => "まあね",
